@@ -43,6 +43,16 @@ class RBM():
         whole = dot( v, dot(self.w, h) )
         return -visible -hidden -whole 
 
+    def train(self, data, eta, mu, bound=10000):
+        count = 0
+        while(1):
+
+            # 更新式
+
+            if count > bound:
+                print 'loop couner is over upper bound(%d)' % bound
+                return True
+
 def sigmoid(beta):
     def f(x):
         return 1 / (1 + exp(-beta*x))
@@ -65,4 +75,16 @@ if __name__=='__main__':
     print 'confHidden:',rbm.confHidden(v)
     print 'energy:',rbm.energy(v,h)
     
-    
+    data = array([[1,2,3],
+                  [2,3,4],
+                  [3,2,1],
+                  [0,0,0],
+                  [1,1,1],
+                  [2,2,2]])
+    rbm.train(data)
+    v = arran([1,2,3])
+    print 'confHidden:',rbm.confHidden(v)
+    v = arran([2,3,4])
+    print 'confHidden:',rbm.confHidden(v)
+    v = arran([0,0,0])
+    print 'confHidden:',rbm.confHidden(v)
