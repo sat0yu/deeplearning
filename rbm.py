@@ -43,15 +43,55 @@ class RBM():
         whole = dot( v, dot(self.w, h) )
         return -visible -hidden -whole 
 
-    def train(self, data, eta, mu, bound=10000):
-        count = 0
-        while(1):
+    def gibbs_sampling(self, v, A=1):
+        vt = v
+        for t in range(A):
+            ht = self.confHidden(vt)
+            vt = self.confVisible(ht)
+        return vt
 
-            # 更新式
+    def train(self, data, eta, bound=10000): # w,b,cの学習率をetaで統一
+        N = len(data)
+        count, del_w, del_b, del_c = 0,0,0,0
+        sig = sigmoid(1.0)
+        while(1):
+            print '\n'
+            for v in data:
+                gv = self.gibbs_sampling(v,A=1)
+                sig_c_vw = sig(self.c + dot(v,self.w))
+                sig_c_gvw = sig(self.c + dot(gv,self.w))
+                print 'gv',gv
+                print 'sig_c_vw',sig_c_vw
+                print 'sig_c_gvw',sig_c_gvw
+                
+                del_w += ( dot(matrix(v).T, matrix(sig_c_vw)) - dot(matrix(gv).T, matrix(sig_c_gvw)) ).A
+                del_b += v - gv
+                del_c += sig_c_vw - sig_c_gvw
+
+            # divide N, num of data
+            del_w /= N
+            del_b /= N
+            del_c /= N
+
+            # debug
+            print '\n'
+            print 'eta * del_w',eta * del_w
+            print 'eta * del_b',eta * del_b
+            print 'eta * del_c',eta * del_c
+
+            # update
+            self.w -= eta * del_w
+            print 'w',self.w
+            self.b -= eta * del_b
+            print 'b',self.b
+            self.c -= eta * del_c
+            print 'c',self.c
 
             if count > bound:
                 print 'loop couner is over upper bound(%d)' % bound
                 return True
+            else:
+                count += 1
 
 def sigmoid(beta):
     def f(x):
@@ -59,32 +99,27 @@ def sigmoid(beta):
     return f
 
 if __name__=='__main__':
-    v = array([1,2,3])
-    h = array([1,1,0,1])
+    rbm = RBM(3,2)
+    data = array([[0,0,1],
+                  [0,0,1],
+                  [0,0,1],
+                  [0,0,1],
+                  [0,0,1],
+                  [0,0,1],
+                  [0,0,1],
+                  [0,0,1],
+                  [0,1,1],
+                  [1,1,1]])
+    rbm.train(data, 0.1, bound=1000)
 
-    rbm = RBM(3,4)
-    print 'confVisible:',rbm.confVisible(h)
-    print 'confHidden:',rbm.confHidden(v)
-    print 'energy:',rbm.energy(v,h)
-
-    b = array([-10, 1, 3])
-    rbm.setParam('b', b)
-    c = array([0, 1, 1, 0.5])
-    rbm.setParam('c', c)
-    print 'confVisible:',rbm.confVisible(h)
-    print 'confHidden:',rbm.confHidden(v)
-    print 'energy:',rbm.energy(v,h)
-    
-    data = array([[1,2,3],
-                  [2,3,4],
-                  [3,2,1],
-                  [0,0,0],
-                  [1,1,1],
-                  [2,2,2]])
-    rbm.train(data)
-    v = arran([1,2,3])
-    print 'confHidden:',rbm.confHidden(v)
-    v = arran([2,3,4])
-    print 'confHidden:',rbm.confHidden(v)
-    v = arran([0,0,0])
-    print 'confHidden:',rbm.confHidden(v)
+    print '\n'
+    v = array([0,0,1])
+    h = rbm.confHidden(v)
+    v = rbm.confVisible(h)
+    print 'confHidden:', h
+    print 'confVisible:', v
+    v = array([1,1,1])
+    h = rbm.confHidden(v)
+    v = rbm.confVisible(h)
+    print 'confHidden:', h
+    print 'confVisible:', v
