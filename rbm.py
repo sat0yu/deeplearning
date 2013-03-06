@@ -3,66 +3,83 @@
 from numpy import *
 
 class RBM():
-    def __init__(self, nv, nh):
-        self.nv = nv
-        self.b = zeros(nv)
-        self.nh = nh
-        self.c = zeros(nh)
-        self.w = ones( (nv,nh) )
+    def __init__(self, num_v, num_h, vbias=None, hbias=None, W=None):
+        if vbias is None:
+            vbias = zeros(num_v)
 
-    def validate(self, name, value):
-        if name == 'b' or name == 'v':
-            return True if len(value) == self.nv else False
-        if name == 'c' or name == 'h':
-            return True if len(value) == self.nh else False
-        if name == 'w':
-            return True if shape(value) == (self.nv, self.nh) else False
-    
-    def setParam(self, name, value):
-        if self.validate(name, value):
-            if name == 'b':
-                self.b = value
-            if name == 'c':
-                self.c = value
-            if name == 'w':
-                self.w = value
-            return True
-        else:
-            print 'invalid argument'
-            return False
+        if hbias is None:
+            hbias = zeros(num_h)
+        
+        if W is None:
+            width = 1. / num_v
+            W = random.uniform(
+                low = -width,
+                high = width,
+                size = (num_v, num_h) )
+
+        # initialize
+        self.num_v = num_v
+        self.num_h = num_h
+        self.vbias = vbias
+        self.hbias = hbias
+        self.W = W
             
-    def confVisible(self, h):
-        return 1 / (1 + exp( self.b + dot(self.w, h) ))
+    def visible_given_hidden(self, h):
+        v_means = sigmoid( self.vbias + dot(h, self.W.T) )
+        v_instance = random.binomial(n=1, p=v_means)
+        return (v_means, v_instance)
     
-    def confHidden(self, v):
-        return 1 / (1 + exp( self.c + dot(v, self.w) ))
+    def hidden_given_visible(self, v):
+        h_means = sigmoid( self.hbias + dot(v, self.W) )
+        h_instance = random.binomial(n=1, p=h_means)
+        return (h_means, h_instance)
 
-    def energy(self, v, h):
-        visible = dot( v, self.b )
-        hidden = dot( h, self.c )
-        whole = dot( v, dot(self.w, h) )
-        return -visible -hidden -whole 
+    def reconstruct(self, v):
+        return self.visible_given_hidden( self.hidden_given_visible(v)[0] )
 
-def sigmoid(beta):
-    def f(x):
-        return 1 / (1 + exp(-beta*x))
-    return f
+    def gibbs_sampling(self, data):
+        h0_means, h0_sample = self.hidden_given_visible(data)
+        # print 'h0_means',h0_means
+        # print 'h0_sample',h0_sample
+        v1_means, v1_sample = self.visible_given_hidden(h0_sample)
+        h1_means, h1_sample = self.hidden_given_visible(v1_sample)
+
+        return (v1_means, v1_sample, h1_means, h1_sample)
+
+    def training(self, data, learning_rate=0.1, bound=1000, CD_A=1):
+        for step in range(bound):
+            h_means, h_sample = self.hidden_given_visible(data)
+        
+            for A in range(CD_A):
+                if A == 0:
+                    vn_means, vn_samples, hn_means, hn_samples = self.gibbs_sampling(data)
+                else:
+                    vn_means, vn_samples, hn_means, hn_samples = self.gibbs_sampling(vn_samples)
+
+            self.W += learning_rate * ( dot(data.T, h_means) - dot(vn_samples.T, hn_means) )
+            self.vbias += learning_rate * mean(data - vn_samples, axis=0)
+            self.hbias += learning_rate * mean(h_means - hn_means, axis=0)
+
+def sigmoid(x):
+    return 1. / (1 + exp(-x))
 
 if __name__=='__main__':
-    v = array([1,2,3])
-    h = array([1,1,0,1])
+    rbm = RBM(10,10)
 
-    rbm = RBM(3,4)
-    print 'confVisible:',rbm.confVisible(h)
-    print 'confHidden:',rbm.confHidden(v)
-    print 'energy:',rbm.energy(v,h)
+    # train
+    traindata = array([[1,1,1,0,0,0,1,1,1,1],
+                       [1,0,1,0,0,0,1,1,1,1],
+                       [1,1,1,0,0,0,0,0,0,0],
+                       [0,0,1,1,1,0,0,0,0,0],
+                       [0,0,1,1,0,0,1,0,1,0],
+                       [0,0,1,1,1,0,1,0,1,0]])
+    rbm.training(traindata, learning_rate=0.05, bound=5000, CD_A=2)
 
-    b = array([-10, 1, 3])
-    rbm.setParam('b', b)
-    c = array([0, 1, 1, 0.5])
-    rbm.setParam('c', c)
-    print 'confVisible:',rbm.confVisible(h)
-    print 'confHidden:',rbm.confHidden(v)
-    print 'energy:',rbm.energy(v,h)
-    
-    
+    # test
+    testdata = array([[1,0,1,0,0,0,1,1,1,1],
+                      [1,1,1,0,0,0,0,0,0,0]])
+    for td in testdata:
+        print 'td',td
+        buf = rbm.reconstruct(td)
+        print 'rbm.reconstruct(td)[0]',buf[0]
+        print 'rbm.reconstruct(td)[1]',buf[1]
