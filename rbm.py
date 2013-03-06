@@ -64,7 +64,7 @@ def sigmoid(x):
     return 1. / (1 + exp(-x))
 
 if __name__=='__main__':
-    rbm = RBM(10,10)
+    rbm = RBM(10,100)
 
     # train
     traindata = array([[1,1,1,0,0,0,1,1,1,1],
@@ -73,13 +73,16 @@ if __name__=='__main__':
                        [0,0,1,1,1,0,0,0,0,0],
                        [0,0,1,1,0,0,1,0,1,0],
                        [0,0,1,1,1,0,1,0,1,0]])
-    rbm.training(traindata, learning_rate=0.05, bound=5000, CD_A=2)
+    rbm.training(traindata, learning_rate=0.05, bound=5000, CD_A=1)
 
     # test
     testdata = array([[1,0,1,0,0,0,1,1,1,1],
-                      [1,1,1,0,0,0,0,0,0,0]])
+                      [1,1,1,0,0,0,0,0,0,0],
+                      [0,0,1,1,1,0,0,0,0,0]])
     for td in testdata:
+        print '\n'
         print 'td',td
-        buf = rbm.reconstruct(td)
-        print 'rbm.reconstruct(td)[0]',buf[0]
-        print 'rbm.reconstruct(td)[1]',buf[1]
+        h = rbm.hidden_given_visible(td)[1]
+        v = rbm.visible_given_hidden(h)[1]
+        print 'h',h
+        print 'v',v
