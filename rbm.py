@@ -60,6 +60,11 @@ class RBM():
             self.vbias += learning_rate * mean(data - vn_samples, axis=0)
             self.hbias += learning_rate * mean(h_means - hn_means, axis=0)
 
+            print self.log_likelihood(data)
+
+    def log_likelihood(self, data):
+        return  sum( log( mean(self.reconstruct(data)[0], axis=1) ) )
+
 def sigmoid(x):
     return 1. / (1 + exp(-x))
 
