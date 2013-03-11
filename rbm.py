@@ -35,7 +35,7 @@ class RBM():
         return (h_means, h_instance)
 
     def reconstruct(self, v):
-        return self.visible_given_hidden( self.hidden_given_visible(v)[0] )
+        return self.visible_given_hidden( self.hidden_given_visible(v)[1] )
 
     def gibbs_sampling(self, data):
         h0_means, h0_sample = self.hidden_given_visible(data)
@@ -63,7 +63,12 @@ class RBM():
             print self.log_likelihood(data)
 
     def log_likelihood(self, data):
-        return  sum( log( mean(self.reconstruct(data)[0], axis=1) ) )
+        v1_means = self.reconstruct(data)[0]
+        # print data
+        # print v1_means
+        # print data * v1_means + (1 - data) * (1-v1_means)
+        likelihood = data * v1_means + (1 - data) * (1-v1_means)
+        return  sum( log( mean(likelihood , axis=1) ) )
 
 def sigmoid(x):
     return 1. / (1 + exp(-x))
