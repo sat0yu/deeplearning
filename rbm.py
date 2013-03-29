@@ -1,6 +1,7 @@
 #coding=utf-8
 
 from numpy import *
+import math
 
 class RBM():
     def __init__(self, num_v, num_h, vbias=None, hbias=None, W=None):
@@ -72,6 +73,12 @@ class RBM():
 
 def sigmoid(x):
     return 1. / (1 + exp(-x))
+
+def gauss(x, mean, variance=1.):
+    # need to import "erf" function
+    # that included python v2.7 or later,
+    # and also included scipy.special
+    return ( 1. + math.erf( x - mean / (2*variance)**0.5 ) ) / 2.
 
 if __name__=='__main__':
     rbm = RBM(10,100)
