@@ -25,10 +25,20 @@ class RBM():
         self.hbias = hbias
         self.W = W
             
-    def visible_given_hidden(self, h):
-        v_means = sigmoid( self.vbias + dot(h, self.W.T) )
-        v_instance = random.binomial(n=1, p=v_means)
-        return (v_means, v_instance)
+    def visible_given_hidden(self, h, model="sigmod"):
+        if model is "sigmod":
+            v_means = sigmoid( self.vbias + dot(h, self.W.T) )
+            v_instance = random.binomial(n=1, p=v_means)
+            return (v_means, v_instance)
+        
+        if model is "gauss":
+            # supposed, variance is 1.0
+            v_instance = v_means = random.normal(self.vbias + dot(h, self.W.T), 1.)
+            return (v_means, v_instance)
+
+        else:
+            print "given an invalid argument: model=%s" & model
+            return False
     
     def hidden_given_visible(self, v):
         h_means = sigmoid( self.hbias + dot(v, self.W) )
